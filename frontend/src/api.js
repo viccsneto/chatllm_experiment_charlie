@@ -1,10 +1,10 @@
 const API_BASE = window.location.origin;
 
-async function sendMessageStream({ message, history, onDelta, signal }) {
+async function sendMessageStream({ message, sessionKey, history, onDelta, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, session_key: sessionKey, history }),
     signal,
   });
 
@@ -56,3 +56,110 @@ async function sendMessageStream({ message, history, onDelta, signal }) {
     }
   }
 }
+
+async function fetchSessions() {
+  const response = await fetch(`${API_BASE}/api/sessions`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao carregar sessoes.");
+  }
+  return response.json();
+}
+
+async function createSession() {
+  const response = await fetch(`${API_BASE}/api/sessions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao criar sessao.");
+  }
+  return response.json();
+}
+
+async function updateSession(sessionKey, title) {
+  const response = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao atualizar sessao.");
+  }
+  return response.json();
+}
+
+async function deleteSession(sessionKey) {
+  const response = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao deletar sessao.");
+  }
+}
+
+async function fetchSessionMessages(sessionKey) {
+  const response = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}/messages`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao carregar mensagens.");
+  }
+  return response.json();
+}
+
+async function fetchSession(sessionKey) {
+  const response = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro ao carregar sessao.");
+  }
+  return response.json();
+}
+
+// Auth endpoints
+async function register({ email, password }) {
+  const response = await fetch(`${API_BASE}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro no cadastro.");
+  }
+  return response.json();
+}
+
+async function login({ email, password }) {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.detail || "Erro no login.");
+  }
+  return response.json();
+}
+
+async function me(token) {
+  const response = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+async function logout(token) {
+  await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// functions are declared in global scope for non-module frontend
