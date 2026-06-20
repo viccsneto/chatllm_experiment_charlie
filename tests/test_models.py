@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 
-from backend.models import ChatMessage
+from backend.models import ChatMessage, Session, User
 
 
 class TestChatMessage:
@@ -99,6 +100,69 @@ class TestChatMessage:
 
         assert before <= msg.created_at <= after
 
+
+class TestSession:
+    def test_create_session_defaults(self, db_session):
+        """Deve criar uma sessao com valores padrao."""
+        session_id = str(uuid.uuid4())
+        session = Session(id=session_id, title="Novo Chat")
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+
+        assert session.id == session_id
+        assert session.title == "Novo Chat"
+        assert isinstance(session.created_at, datetime)
+        assert isinstance(session.updated_at, datetime)
+
+    def test_create_session_custom_title(self, db_session):
+        """Deve criar uma sessao com titulo customizado."""
+        session_id = str(uuid.uuid4())
+        session = Session(id=session_id, title="Meu Chat")
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+
+        assert session.title == "Meu Chat"
+
+    def test_session_created_at_auto_set(self, db_session):
+        """O campo created_at deve ser preenchido automaticamente."""
+        before = datetime.now(timezone.utc).replace(tzinfo=None)
+        session_id = str(uuid.uuid4())
+        session = Session(id=session_id, title="Teste")
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+        after = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        assert before <= session.created_at <= after
+
+    def test_query_session_by_id(self, db_session):
+        """Deve consultar sessao por ID."""
+        session_id = str(uuid.uuid4())
+        session = Session(id=session_id, title="Unica")
+        db_session.add(session)
+        db_session.commit()
+
+        result = db_session.query(Session).filter(Session.id == session_id).first()
+        assert result is not None
+        assert result.title == "Unica"
+
+    def test_session_with_user_id(self, db_session):
+        """Deve criar sessao associada a um user_id."""
+        from backend.models import User
+        user = User(email="user@test.com", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        session_id = str(uuid.uuid4())
+        session = Session(id=session_id, title="Minha Sessao", user_id=user.id)
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+
+        assert session.user_id == user.id
+
     def test_content_persists_long_text(self, db_session):
         """Deve persistir conteudos longos corretamente."""
         long_text = "Lorem ipsum " * 200
@@ -108,3 +172,32 @@ class TestChatMessage:
         db_session.refresh(msg)
 
         assert msg.content == long_text
+
+
+class TestUser:
+    def test_create_user(self, db_session):
+        """Deve criar um usuario com email e password_hash."""
+        from backend.models import User
+        user = User(email="user@test.com", password_hash="hashed_password")
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+
+        assert user.id is not None
+        assert user.email == "user@test.com"
+        assert user.password_hash == "hashed_password"
+        assert user.created_at is not None
+
+    def test_email_unique(self, db_session):
+        """Email deve ser unico no banco."""
+        from backend.models import User
+        import pytest
+        user1 = User(email="same@test.com", password_hash="hash1")
+        user2 = User(email="same@test.com", password_hash="hash2")
+        db_session.add(user1)
+        db_session.commit()
+
+        db_session.add(user2)
+        with pytest.raises(Exception):
+            db_session.commit()
+        db_session.rollback()
