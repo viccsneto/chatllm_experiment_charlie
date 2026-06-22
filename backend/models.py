@@ -8,6 +8,22 @@ from sqlalchemy.orm import Mapped, mapped_column
 from backend.database import Base
 
 
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_key: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
@@ -16,4 +32,6 @@ class ChatMessage(Base):
     role: Mapped[str] = mapped_column(String(20), index=True)
     content: Mapped[str] = mapped_column(Text)
     model: Mapped[str] = mapped_column(String(120), default="google/gemma-4-31b-it")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )

@@ -55,7 +55,7 @@ async def generate_reply(*, user_message: str, history: list[dict], model: str |
         "messages": messages,
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(OPENROUTER_API_URL, json=payload, headers=_build_headers())
 
     if response.status_code >= 400:
@@ -69,6 +69,40 @@ async def generate_reply(*, user_message: str, history: list[dict], model: str |
         raise RuntimeError("OpenRouter nao retornou conteudo de resposta.")
 
     return reply, resolved_model
+
+
+async def generate_title(*, conversation: list[dict], model: str | None = None) -> str:
+    """Generate a short title (max 60 chars) for a conversation."""
+    if not OPENROUTER_API_KEY:
+        return "Nova sessao"
+
+    resolved_model = model or OPENROUTER_MODEL_DEFAULT
+    title_prompt = (
+        "Based on the following conversation, generate a very short title (maximum 60 characters) "
+        "that summarizes the main topic. Return ONLY the title, no quotes, no extra text.\n\n"
+        "Conversation:\n"
+    )
+    for msg in conversation[-3:]:  # use last 3 messages
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        title_prompt += f"{role}: {content[:200]}\n"
+
+    payload = {
+        "model": resolved_model,
+        "messages": [{"role": "user", "content": title_prompt}],
+        "max_tokens": 60,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(OPENROUTER_API_URL, json=payload, headers=_build_headers())
+        if response.status_code >= 400:
+            return "Nova sessao"
+        data = response.json()
+        title = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip().strip('"\'')
+        return title[:60] if title else "Nova sessao"
+    except Exception:
+        return "Nova sessao"
 
 
 async def stream_reply(*, user_message: str, history: list[dict], model: str | None = None):

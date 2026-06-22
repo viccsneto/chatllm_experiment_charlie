@@ -5,25 +5,29 @@
 **Hard rule**: AI agents must not edit this file and must not draft paste-ready content for it.
 
 ## R — Repeat (The Problem)
-_State the problem in your own words. Confirm that you share the same mental model of the goal._
-
+ A versão anterior não havia controle de sessões, existia apenas um chat que não salvava a conversa, não era possível ter mais de uma conversa com contextos diferentes sem perder a sessão, ou simplesmente ao atualizar a página o chat perdia todo o contexto.
 ## E — Examples
-_Provide concrete inputs and expected outputs that demonstrate the correctness. Base them on observable behavior._
+Irei citar exemplos sobre a criação de título para as sessões visto que exemplos de controle de sessões em si são mais abstratos.
 
-- **Happy Path Input**: ...
-  **Output**: ...
+- **Happy Path Input**: Qual a capital do brasil?
+  **Output**: Capital do Brasil
 
-- **Edge Case Input**: ...
-  **Output**: ...
+- **Edge Case Input**: Quem vai ganhar a copa?
+  **Output**: Previsão de vencedor da copa
 
 ## A — Approach
-_Describe your high-level strategy conceptually. How did you design the solution?_
+Implementar uma classe para controle de sessão, e na classe do chat exigir a chave da sessão. Através dessa chave é buscado no banco de dados o histórico da conversa, agente e usuário para manter o contexto, e a cada nova mensagem nessa sessão é salvo no banco o novo histórico. Para o título é capturdada as 3 últimas mensagens da sessão e enviada a um LLM para devolver apenas um título com base na conversa. No frontend foi adicionado uma barra lateral para acessar esses diferentes chats.
 
 ## C — Code
-_Identify the most critical code changes, format as actual files, functions, or methods. Justify the intent of your design choices rather than just acknowledging the syntax changes._
+models.py - Criação do modelo de sessão
+sessions.py - CRUD das sessões
+chat.py -  Agora exige uma chave de sessão
+Sidebar.jsx - Barra lateral no frontend
+api.js - Funções novas para lidar com as sessões
+App.jsx - Refatorado para gerenciar estados das sessões
 
 ## T — Tests
-_Explain how the solution was validated, pointing to the actual test files, functions, or methods. Document any manual or automated tests._
+Testes feitos diretamente na aplicação, verificando visualmente a criação do título com base na conversa. Além de manter duas conversas paralelas com contextos diferentes
 
 ## O — Optimize
-_Address Big(O) complexity, note that sometimes it doesn't apply, trade-offs, constraints, and opportunities for future improvement._
+Gerar o título de forma assíncrona.
