@@ -12,13 +12,14 @@ from backend.config import OPENROUTER_MODEL_DEFAULT
 from backend.database import SessionLocal, get_db
 from backend.models import ChatMessage, Session as ChatSession
 from backend.schemas.chat import ChatRequest, ChatResponse
+from backend.routers.auth import get_current_user_id
 from backend.services.openrouter import OpenRouterConfigError, generate_reply, generate_title, stream_reply
 
 
 router = APIRouter()
 
 
-def _resolve_session(payload: ChatRequest, db: Session) -> ChatSession:
+def _resolve_session(payload: ChatRequest, db: Session, user_id: int | None = None) -> ChatSession:
     """Get or auto-create a session for this request."""
     session_key = payload.session_key
     if session_key:
@@ -30,7 +31,7 @@ def _resolve_session(payload: ChatRequest, db: Session) -> ChatSession:
     # Create new session
     session_key = uuid4().hex[:16]
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    session = ChatSession(session_key=session_key, title=None, created_at=now, updated_at=now)
+    session = ChatSession(session_key=session_key, user_id=user_id, title=None, created_at=now, updated_at=now)
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -74,9 +75,9 @@ def health_check() -> dict[str, str]:
 
 
 @router.post("/api/chat", response_model=ChatResponse)
-async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+async def chat(payload: ChatRequest, db: Session = Depends(get_db), user_id: int | None = Depends(get_current_user_id)) -> ChatResponse:
     # Resolve session
-    session = _resolve_session(payload, db)
+    session = _resolve_session(payload, db, user_id)
     session_key = session.session_key
 
     try:
@@ -102,9 +103,9 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
 
 
 @router.post("/api/chat/stream")
-async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> StreamingResponse:
+async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db), user_id: int | None = Depends(get_current_user_id)) -> StreamingResponse:
     resolved_model = payload.model or OPENROUTER_MODEL_DEFAULT
-    session = _resolve_session(payload, db)
+    session = _resolve_session(payload, db, user_id)
     session_key = session.session_key
 
     async def event_generator():

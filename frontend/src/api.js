@@ -1,9 +1,18 @@
 const API_BASE = window.location.origin;
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 async function sendMessageStream({ message, history, session_key, onDelta, onDone, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ message, history, session_key }),
     signal,
   });
@@ -62,7 +71,9 @@ async function sendMessageStream({ message, history, session_key, onDelta, onDon
 }
 
 async function listSessions() {
-  const res = await fetch(`${API_BASE}/api/sessions`);
+  const res = await fetch(`${API_BASE}/api/sessions`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error("Erro ao listar sessoes.");
   const data = await res.json();
   return data.sessions;
@@ -71,7 +82,7 @@ async function listSessions() {
 async function createSession() {
   const res = await fetch(`${API_BASE}/api/sessions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({}),
   });
   if (!res.ok) throw new Error("Erro ao criar sessao.");
@@ -81,6 +92,7 @@ async function createSession() {
 async function deleteSession(sessionKey) {
   const res = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Erro ao deletar sessao.");
 }
@@ -88,9 +100,46 @@ async function deleteSession(sessionKey) {
 async function renameSession(sessionKey, title) {
   const res = await fetch(`${API_BASE}/api/sessions/${encodeURIComponent(sessionKey)}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ title }),
   });
   if (!res.ok) throw new Error("Erro ao renomear sessao.");
+  return res.json();
+}
+
+// ── Auth ────────────────────────────────────────────────────
+async function registerUser(email, password) {
+  const res = await fetch(`${API_BASE}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Erro ao cadastrar.");
+  return data;
+}
+
+async function loginUser(email, password) {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Erro ao logar.");
+  return data;
+}
+
+async function verifyToken() {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  const res = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("email");
+    return null;
+  }
   return res.json();
 }

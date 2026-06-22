@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from backend.database import get_db
 from backend.models import Session, ChatMessage
+from backend.routers.auth import get_current_user_id
 from backend.schemas.chat import ChatMessageIn
 from backend.schemas.session import SessionList, SessionOut, SessionRename
 from backend.services.openrouter import generate_title
@@ -22,17 +23,25 @@ router = APIRouter()
 
 
 @router.get("/api/sessions", response_model=SessionList)
-def list_sessions(db: DBSession = Depends(get_db)):
-    sessions = (
-        db.query(Session)
-        .order_by(Session.updated_at.desc())
-        .all()
-    )
+def list_sessions(
+    db: DBSession = Depends(get_db),
+    user_id: int | None = Depends(get_current_user_id),
+):
+    query = db.query(Session)
+    if user_id:
+        query = query.filter(Session.user_id == user_id)
+    else:
+        query = query.filter(Session.user_id.is_(None))
+    sessions = query.order_by(Session.updated_at.desc()).all()
     return SessionList(sessions=sessions)
 
 
 @router.post("/api/sessions", response_model=SessionOut, status_code=201)
-def create_session(payload: SessionCreatePayload | None = None, db: DBSession = Depends(get_db)):
+def create_session(
+    payload: SessionCreatePayload | None = None,
+    db: DBSession = Depends(get_db),
+    user_id: int | None = Depends(get_current_user_id),
+):
     session_key = payload.session_key if (payload and payload.session_key) else uuid4().hex[:16]
 
     existing = db.query(Session).filter(Session.session_key == session_key).first()
@@ -42,6 +51,7 @@ def create_session(payload: SessionCreatePayload | None = None, db: DBSession = 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     session = Session(
         session_key=session_key,
+        user_id=user_id,
         title=None,
         created_at=now,
         updated_at=now,
