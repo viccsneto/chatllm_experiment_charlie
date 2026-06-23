@@ -1,10 +1,60 @@
 const API_BASE = window.location.origin;
 
-async function sendMessageStream({ message, history, onDelta, signal }) {
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+async function register(email, password, confirmPassword) {
+  const res = await fetch(`${API_BASE}/api/auth/register`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    credentials: "include",
+    body: JSON.stringify({ email, password, confirm_password: confirmPassword }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.detail?.[0]?.msg || body?.detail || "Erro no cadastro");
+  }
+  return await res.json();
+}
+
+async function login(email, password) {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.detail || "Email ou senha invalidos");
+  }
+  return await res.json();
+}
+
+async function logout() {
+  await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+async function fetchMe() {
+  const res = await fetch(`${API_BASE}/api/auth/me`, {
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+async function sendMessageStream({ message, history, session_id, onDelta, onDone, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    headers: JSON_HEADERS,
+    credentials: "include",
+    body: JSON.stringify({ message, history, session_id }),
     signal,
   });
 
@@ -53,6 +103,42 @@ async function sendMessageStream({ message, history, onDelta, signal }) {
       if (payload.delta) {
         onDelta(payload.delta);
       }
+
+      if (payload.done && onDone) {
+        onDone(payload.session_id);
+      }
     }
   }
+}
+
+async function fetchSessions() {
+  const res = await fetch(`${API_BASE}/api/sessions`, { credentials: "include" });
+  if (!res.ok) throw new Error("Falha ao carregar sessoes");
+  const data = await res.json();
+  return data.sessions;
+}
+
+async function createSession() {
+  const res = await fetch(`${API_BASE}/api/sessions`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Falha ao criar sessao");
+  return await res.json();
+}
+
+async function fetchSessionMessages(sessionId) {
+  const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`, { credentials: "include" });
+  if (!res.ok) throw new Error("Falha ao carregar mensagens");
+  const data = await res.json();
+  return data.messages;
+}
+
+async function deleteSession(sessionId) {
+  const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Falha ao deletar sessao");
 }

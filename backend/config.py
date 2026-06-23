@@ -16,3 +16,11 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 SQLITE_PATH = ROOT_DIR / "database" / "chat.db"
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{SQLITE_PATH}"
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY nao definida no .env. Gere uma com: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+    )
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))

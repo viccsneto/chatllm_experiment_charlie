@@ -57,14 +57,16 @@
         width: 100%;
         height: 100%;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
       }
 
       .app-header {
         flex-shrink: 0;
         padding: 12px 24px;
         border-bottom: 1px solid var(--border);
-        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
 
       .brand {
@@ -72,6 +74,264 @@
         font-size: 0.95rem;
         color: var(--text);
         letter-spacing: 0;
+      }
+
+      .sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        background: #f9f9f9;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: width 200ms ease;
+      }
+
+      .sidebar-header {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .new-chat-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 120ms;
+      }
+
+      .new-chat-btn:hover {
+        background: #eaeaea;
+      }
+
+      .session-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+      }
+
+      .session-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 100ms;
+        margin-bottom: 2px;
+      }
+
+      .session-item:hover {
+        background: #eaeaea;
+      }
+
+      .session-item.active {
+        background: #dcdcdc;
+      }
+
+      .session-title {
+        font-size: 0.85rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+
+      .session-delete {
+        opacity: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: #999;
+        padding: 4px;
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+
+      .session-item:hover .session-delete {
+        opacity: 1;
+      }
+
+      .session-delete:hover {
+        color: #c0392b;
+        background: rgba(192, 57, 43, 0.1);
+      }
+
+      .sidebar-toggle {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+      }
+
+      .sidebar-toggle:hover {
+        color: var(--text);
+        background: var(--user-bubble);
+      }
+
+      .main-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: var(--muted);
+        padding: 60px 20px;
+        font-size: 0.95rem;
+      }
+
+      .sidebar-footer {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .sidebar-user {
+        font-size: 0.8rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .logout-btn {
+        border: 1px solid var(--border);
+        background: transparent;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        color: var(--text);
+        transition: background 100ms;
+      }
+
+      .logout-btn:hover {
+        background: #eaeaea;
+      }
+
+      /* ── Auth screen ── */
+      .auth-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .auth-box {
+        width: 100%;
+        max-width: 380px;
+        background: var(--bg-page);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 36px 32px 28px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      }
+
+      .auth-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 0 0 4px;
+      }
+
+      .auth-subtitle {
+        font-size: 0.95rem;
+        font-weight: 400;
+        text-align: center;
+        color: var(--muted);
+        margin: 0 0 28px;
+      }
+
+      .auth-field {
+        margin-bottom: 18px;
+      }
+
+      .auth-field label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: var(--text);
+      }
+
+      .auth-field input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--composer-border);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 0.95rem;
+        background: var(--bg-page);
+        color: var(--text);
+        outline: none;
+        transition: border-color 150ms;
+        box-sizing: border-box;
+      }
+
+      .auth-field input:focus {
+        border-color: #888;
+      }
+
+      .auth-error {
+        color: #c0392b;
+        font-size: 0.84rem;
+        margin-bottom: 14px;
+        text-align: center;
+      }
+
+      .auth-submit {
+        width: 100%;
+        padding: 11px;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 120ms;
+      }
+
+      .auth-submit:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      .auth-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .auth-switch {
+        text-align: center;
+        font-size: 0.84rem;
+        margin: 20px 0 0;
+        color: var(--muted);
+      }
+
+      .auth-switch a {
+        color: var(--text);
+        text-decoration: underline;
+        cursor: pointer;
       }
 
       .messages {
@@ -279,6 +539,7 @@
     <script type="text/babel" src="/frontend/src/api.js"></script>
     <script type="text/babel" src="/frontend/src/MessageContent.jsx"></script>
     <script type="text/babel" src="/frontend/src/Composer.jsx"></script>
+    <script type="text/babel" src="/frontend/src/Auth.jsx"></script>
     <script type="text/babel" src="/frontend/src/App.jsx"></script>
   </body>
 </html>
