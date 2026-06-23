@@ -5,6 +5,8 @@ function createMessageId() {
 }
 
 function App() {
+  const [token, setToken] = useState(() => window.localStorage.getItem("chatllm_token") || null);
+  const [email, setEmail] = useState(() => window.localStorage.getItem("chatllm_email") || "");
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,8 +24,12 @@ function App() {
   );
 
   useEffect(() => {
-    loadSessions();
-  }, []);
+    if (token) {
+      loadSessions();
+    } else {
+      setLoadingSessions(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     const el = messagesRef.current;
@@ -127,6 +133,31 @@ function App() {
     }
   }, [sessions, activeSessionId]);
 
+  const handleAuth = useCallback((newToken, newEmail) => {
+    window.localStorage.setItem("chatllm_token", newToken);
+    window.localStorage.setItem("chatllm_email", newEmail);
+    setToken(newToken);
+    setEmail(newEmail);
+    setMessages([]);
+    setActiveSessionId(null);
+    setSessions([]);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout(token);
+    } catch {
+      // Ignore logout errors
+    }
+    window.localStorage.removeItem("chatllm_token");
+    window.localStorage.removeItem("chatllm_email");
+    setToken(null);
+    setEmail("");
+    setMessages([]);
+    setActiveSessionId(null);
+    setSessions([]);
+  }, [token]);
+
   const onStop = () => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -208,6 +239,11 @@ function App() {
     }
   };
 
+  // ─── If not authenticated, show login screen ─────────────────────
+  if (!token) {
+    return <Login onAuth={handleAuth} />;
+  }
+
   if (loadingSessions) {
     return (
       <main className="app-shell">
@@ -257,6 +293,16 @@ function App() {
             </div>
           ))}
         </nav>
+        <div className="sidebar-footer">
+          <button className="sidebar-logout-btn" onClick={handleLogout} title="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+              <polyline points="10,12 14,8 10,4" />
+              <line x1="14" y1="8" x2="6" y2="8" />
+            </svg>
+            Sair
+          </button>
+        </div>
       </aside>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
 

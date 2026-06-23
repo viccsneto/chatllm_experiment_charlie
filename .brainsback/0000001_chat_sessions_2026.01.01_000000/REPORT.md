@@ -40,4 +40,36 @@ If present, use `.github/skills/brainsback-reviewer/SKILL.md` as the review rubr
 - [ ] A exclusao da unica sessao restante e bloqueada pelo frontend, mas o backend permitiria — pode ser interessante validar no backend tambem.
 
 ---
+
+## Tarefa 2 — Login e Logout
+
+### Snapshot
+- **Change**: Implementacao de autenticacao (signup, login, logout) via email e senha com persistencia SQLite
+- **Status**: Completo (66 testes passando — 54 existentes + 12 novos)
+
+### The Changes
+- [x] **`backend/models.py`** — Adicionados modelos `User` (email_hash, password_hash) e `ApiToken` (token_hash, expires_at, active). Email armazenado como SHA-256 hash (privacidade). Senha armazenada como bcrypt hash.
+- [x] **`backend/schemas/auth.py`** — Schemas `SignupRequest`, `LoginRequest`, `AuthResponse`, `LogoutResponse`, `MeResponse`.
+- [x] **`backend/services/auth.py`** — Servico com `hash_email` (SHA-256), `hash_password`/`verify_password` (bcrypt via passlib), `create_jwt`/`decode_jwt` (HS256), e `generate_token` (opaco).
+- [x] **`backend/routers/auth.py`** — Endpoints: `POST /api/auth/signup` (cria usuario, retorna JWT), `POST /api/auth/login` (valida credenciais, retorna JWT), `POST /api/auth/logout` (invalida token), `GET /api/auth/me` (valida token, retorna dados). Dependency `_get_current_user` para protecao de rotas. Email unico validado por hash (409 se duplicado).
+- [x] **`backend/config.py`** — Adicionados `SECRET_KEY` e `TOKEN_EXPIRE_HOURS`.
+- [x] **`backend/requirements.txt`** — Adicionados `passlib[bcrypt]` e `pyjwt`.
+- [x] **`frontend/src/api.js`** — Funcoes `signup`, `login`, `logout`, `fetchMe`.
+- [x] **`frontend/src/Login.jsx`** — Componente React com formulario de login/cadastro, toggle entre modos, validacao basica.
+- [x] **`frontend/src/App.jsx`** — Estado `token`/`email` persistido em localStorage. Renderizacao condicional: tela de auth se nao logado, chat se logado. Botao "Sair" no footer da sidebar.
+- [x] **`frontend/index.html`** — Estilos CSS da tela de auth (card centralizado, inputs, botao, toggle). Estilos do footer da sidebar com botao de logout. Script tag para `Login.jsx`.
+- [x] **`tests/test_auth.py`** — 12 testes: signup (successo, duplicata 409, email invalido 422, senha curta 422), login (successo, senha errada 401, usuario inexistente 401), me (autenticado, sem token, token invalido), logout (successo, sem token).
+
+### Seguranca
+- Email nunca armazenado em texto puro — hash SHA-256 antes de persistir.
+- Senha armazenada com bcrypt (via passlib).
+- Token JWT com expiracao configravel (default 24h).
+- Rotas protegidas por dependency `_get_current_user`.
+- Email unico validado por unique constraint no hash.
+
+### Risks & Follow-up
+- [ ] SECRET_KEY deve ser alterada em producao (default: "change-me-in-production-use-a-long-random-string").
+- [ ] Logout com JWT puro nao invalida server-side (token continua valido ate expirar) — para invalidacao real seria necessario blocklist.
+
+---
 **Note**: Usually filled by the AI.

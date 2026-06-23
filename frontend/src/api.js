@@ -1,5 +1,45 @@
 const API_BASE = window.location.origin;
 
+// ─── Auth API ──────────────────────────────────────────────────────────
+
+async function signup(email, password) {
+  const response = await fetch(`${API_BASE}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao cadastrar");
+  return data;
+}
+
+async function login(email, password) {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao entrar");
+  return data;
+}
+
+async function logout(token) {
+  const response = await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error("Erro ao sair");
+}
+
+async function fetchMe(token) {
+  const response = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: { "Authorization": `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
 // ─── Session API ─────────────────────────────────────────────────────────
 
 async function fetchSessions() {
