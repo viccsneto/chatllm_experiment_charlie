@@ -1,10 +1,10 @@
 const API_BASE = window.location.origin;
 
-async function sendMessageStream({ message, history, onDelta, signal }) {
+async function sendMessageStream({ message, history, session_id, onDelta, onDone, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, session_id }),
     signal,
   });
 
@@ -53,6 +53,40 @@ async function sendMessageStream({ message, history, onDelta, signal }) {
       if (payload.delta) {
         onDelta(payload.delta);
       }
+
+      if (payload.done && onDone) {
+        onDone(payload.session_id);
+      }
     }
   }
+}
+
+async function fetchSessions() {
+  const res = await fetch(`${API_BASE}/api/sessions`);
+  if (!res.ok) throw new Error("Falha ao carregar sessoes");
+  const data = await res.json();
+  return data.sessions;
+}
+
+async function createSession() {
+  const res = await fetch(`${API_BASE}/api/sessions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Falha ao criar sessao");
+  return await res.json();
+}
+
+async function fetchSessionMessages(sessionId) {
+  const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`);
+  if (!res.ok) throw new Error("Falha ao carregar mensagens");
+  const data = await res.json();
+  return data.messages;
+}
+
+async function deleteSession(sessionId) {
+  const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Falha ao deletar sessao");
 }
