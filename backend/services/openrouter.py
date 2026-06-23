@@ -108,3 +108,33 @@ async def stream_reply(*, user_message: str, history: list[dict], model: str | N
                 delta = parsed.get("choices", [{}])[0].get("delta", {}).get("content")
                 if isinstance(delta, str) and delta:
                     yield delta
+
+
+_TITLE_MODEL = "google/gemma-4-31b-it"
+
+
+async def generate_title_from_context(user_message: str) -> str:
+    """Ask the LLM to produce a short (<8 words) title summarising the user's prompt."""
+    if not OPENROUTER_API_KEY:
+        return "Nova sessao"
+
+    prompt = (
+        "Gere um titulo muito curto (maximo 8 palavras, em portugues) "
+        "que resuma o assunto da mensagem abaixo. Responda APENAS com o titulo, "
+        "sem explicacoes, sem aspas, sem pontuacao final.\n\n"
+        f"Mensagem: {user_message.strip()[:500]}"
+    )
+    messages = [{"role": "user", "content": prompt}]
+    payload = {"model": _TITLE_MODEL, "messages": messages, "max_tokens": 30}
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(OPENROUTER_API_URL, json=payload, headers=_build_headers())
+        if response.status_code >= 400:
+            return "Nova sessao"
+        data = response.json()
+        title = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        title = title.strip().strip('"').strip("'").strip(".").strip()
+        return title[:80] or "Nova sessao"
+    except Exception:
+        return "Nova sessao"
