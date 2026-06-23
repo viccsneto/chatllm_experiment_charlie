@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.config import OPENROUTER_MODEL_DEFAULT
 from backend.database import get_db
-from backend.models import ChatMessage, ChatSession
+from backend.models import ChatMessage, ChatSession, User
+from backend.routers.auth import get_current_user
 from backend.schemas.chat import ChatRequest, ChatResponse
 from backend.services.openrouter import OpenRouterConfigError, generate_reply, stream_reply
 
@@ -16,14 +17,14 @@ from backend.services.openrouter import OpenRouterConfigError, generate_reply, s
 router = APIRouter()
 
 
-def _resolve_session(db: Session, session_id: int | None) -> ChatSession:
+def _resolve_session(db: Session, session_id: int | None, user: User | None = None) -> ChatSession:
     """Return existing session or create a new one."""
     if session_id is not None:
         session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
         if not session:
             raise HTTPException(status_code=404, detail="Sessao nao encontrada")
         return session
-    session = ChatSession(title=None)
+    session = ChatSession(title=None, user_id=user.id if user else None)
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -44,8 +45,9 @@ def health_check() -> dict[str, str]:
 
 
 @router.post("/api/chat", response_model=ChatResponse)
-async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
-    session = _resolve_session(db, payload.session_id)
+async def chat(payload: ChatRequest, request: Request, db: Session = Depends(get_db)) -> ChatResponse:
+    user: User | None = get_current_user(request, db)
+    session = _resolve_session(db, payload.session_id, user)
 
     try:
         reply, model_name = await generate_reply(
@@ -72,7 +74,8 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
 
 
 @router.post("/api/chat/stream")
-async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> StreamingResponse:
+async def chat_stream(payload: ChatRequest, request: Request, db: Session = Depends(get_db)) -> StreamingResponse:
+    user: User | None = get_current_user(request, db)
     # Validate session before streaming starts
     if payload.session_id is not None:
         session_obj = db.query(ChatSession).filter(ChatSession.id == payload.session_id).first()
@@ -82,7 +85,7 @@ async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> St
     resolved_model = payload.model or OPENROUTER_MODEL_DEFAULT
 
     async def event_generator():
-        session = _resolve_session(db, payload.session_id)
+        session = _resolve_session(db, payload.session_id, user)
         full_reply = ""
         try:
             async for delta in stream_reply(

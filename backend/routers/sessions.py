@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import ChatMessage, ChatSession
+from backend.models import ChatMessage, ChatSession, User
+from backend.routers.auth import get_current_user
 from backend.schemas.chat import (
     MessageOut,
     SessionCreateOut,
@@ -39,19 +40,27 @@ def _message_to_out(m: ChatMessage) -> MessageOut:
 
 
 @router.get("/api/sessions", response_model=SessionListOut)
-def list_sessions(db: Session = Depends(get_db)):
-    sessions = (
-        db.query(ChatSession)
-        .order_by(ChatSession.updated_at.desc())
-        .all()
-    )
+def list_sessions(request: Request, db: Session = Depends(get_db)):
+    user: User | None = get_current_user(request, db)
+    query = db.query(ChatSession)
+    if user is not None:
+        query = query.filter(ChatSession.user_id == user.id)
+    else:
+        query = query.filter(ChatSession.user_id.is_(None))
+    sessions = query.order_by(ChatSession.updated_at.desc()).all()
     return SessionListOut(sessions=[_session_to_out(s) for s in sessions])
 
 
 @router.post("/api/sessions", response_model=SessionCreateOut, status_code=201)
-def create_session(db: Session = Depends(get_db)):
+def create_session(request: Request, db: Session = Depends(get_db)):
+    user: User | None = get_current_user(request, db)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    session = ChatSession(title=None, created_at=now, updated_at=now)
+    session = ChatSession(
+        title=None,
+        user_id=user.id if user else None,
+        created_at=now,
+        updated_at=now,
+    )
     db.add(session)
     db.commit()
     db.refresh(session)

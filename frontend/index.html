@@ -196,6 +196,144 @@
         font-size: 0.95rem;
       }
 
+      .sidebar-footer {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .sidebar-user {
+        font-size: 0.8rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .logout-btn {
+        border: 1px solid var(--border);
+        background: transparent;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        color: var(--text);
+        transition: background 100ms;
+      }
+
+      .logout-btn:hover {
+        background: #eaeaea;
+      }
+
+      /* ── Auth screen ── */
+      .auth-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .auth-box {
+        width: 100%;
+        max-width: 380px;
+        background: var(--bg-page);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 36px 32px 28px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      }
+
+      .auth-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 0 0 4px;
+      }
+
+      .auth-subtitle {
+        font-size: 0.95rem;
+        font-weight: 400;
+        text-align: center;
+        color: var(--muted);
+        margin: 0 0 28px;
+      }
+
+      .auth-field {
+        margin-bottom: 18px;
+      }
+
+      .auth-field label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: var(--text);
+      }
+
+      .auth-field input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--composer-border);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 0.95rem;
+        background: var(--bg-page);
+        color: var(--text);
+        outline: none;
+        transition: border-color 150ms;
+        box-sizing: border-box;
+      }
+
+      .auth-field input:focus {
+        border-color: #888;
+      }
+
+      .auth-error {
+        color: #c0392b;
+        font-size: 0.84rem;
+        margin-bottom: 14px;
+        text-align: center;
+      }
+
+      .auth-submit {
+        width: 100%;
+        padding: 11px;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 120ms;
+      }
+
+      .auth-submit:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      .auth-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .auth-switch {
+        text-align: center;
+        font-size: 0.84rem;
+        margin: 20px 0 0;
+        color: var(--muted);
+      }
+
+      .auth-switch a {
+        color: var(--text);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
       .messages {
         flex: 1;
         min-height: 0;
@@ -401,6 +539,7 @@
     <script type="text/babel" src="/frontend/src/api.js"></script>
     <script type="text/babel" src="/frontend/src/MessageContent.jsx"></script>
     <script type="text/babel" src="/frontend/src/Composer.jsx"></script>
+    <script type="text/babel" src="/frontend/src/Auth.jsx"></script>
     <script type="text/babel" src="/frontend/src/App.jsx"></script>
   </body>
 </html>

@@ -8,11 +8,25 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+
+    sessions: Mapped[list["ChatSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
@@ -22,6 +36,7 @@ class ChatSession(Base):
         onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
+    user: Mapped[User | None] = relationship(back_populates="sessions")
     messages: Mapped[list["ChatMessage"]] = relationship(
         back_populates="session", cascade="all, delete-orphan", order_by="ChatMessage.created_at"
     )

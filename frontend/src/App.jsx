@@ -5,6 +5,8 @@ function createMessageId() {
 }
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -16,9 +18,16 @@ function App() {
   const abortControllerRef = useRef(null);
   const initialLoadDone = useRef(false);
 
-  // Load sessions on mount
+  // Check auth status on mount
   useEffect(() => {
-    loadSessions();
+    (async () => {
+      const u = await fetchMe();
+      if (u) {
+        setUser(u);
+        await loadSessions();
+      }
+      setAuthLoading(false);
+    })();
   }, []);
 
   // Load messages when switching sessions
@@ -69,6 +78,19 @@ function App() {
     () => messages.filter((msg) => msg.role === "user" || msg.role === "assistant"),
     [messages]
   );
+
+  const handleAuth = (u) => {
+    setUser(u);
+    loadSessions();
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+    setSessions([]);
+    setCurrentSessionId(null);
+    setMessages([]);
+  };
 
   const handleNewChat = async () => {
     abortControllerRef.current?.abort();
@@ -201,6 +223,24 @@ function App() {
     }
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <main className="app-shell">
+        <div className="auth-container">
+          <div className="auth-box">
+            <p style={{ textAlign: "center", color: "var(--muted)" }}>Carregando...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show auth screen if not logged in
+  if (!user) {
+    return <Auth onAuth={handleAuth} />;
+  }
+
   return (
     <main className={`app-shell ${sidebarOpen ? "sidebar-visible" : ""}`}>
       <aside className="sidebar">
@@ -234,6 +274,11 @@ function App() {
             </div>
           ))}
         </nav>
+
+        <div className="sidebar-footer">
+          <span className="sidebar-user">{user.email}</span>
+          <button className="logout-btn" onClick={handleLogout}>Sair</button>
+        </div>
       </aside>
 
       <div className="main-area">
