@@ -9,7 +9,9 @@ function Sidebar({ currentSessionId, onSelectSession, onNewSession, refreshTrigg
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/sessions`);
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/api/sessions`, { headers });
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -26,8 +28,6 @@ function Sidebar({ currentSessionId, onSelectSession, onNewSession, refreshTrigg
   }, [fetchSessions, currentSessionId, refreshTrigger]);
 
   const handleNewSession = async () => {
-    // Nao cria backend session — so reseta o frontend
-    // A sessao real sera criada pelo backend quando a primeira mensagem for enviada
     onNewSession();
     await fetchSessions();
   };
@@ -35,7 +35,12 @@ function Sidebar({ currentSessionId, onSelectSession, onNewSession, refreshTrigg
   const handleDeleteSession = async (e, sessionId) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, { method: "DELETE" });
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers,
+      });
       if (res.ok) {
         if (currentSessionId === sessionId) {
           onNewSession();

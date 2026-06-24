@@ -1,17 +1,35 @@
 const API_BASE = window.location.origin;
 
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 async function sendMessageStream({ message, history, session_id, onDelta, onSessionId, onSessionTitle, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ message, history, session_id }),
     signal,
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    const detail = body?.detail || "Erro ao enviar mensagem para o servidor.";
-    throw new Error(detail);
+    let detail;
+    try {
+      const body = await response.json();
+      detail = body?.detail;
+    } catch {
+      detail = null;
+    }
+    // Detail pode ser string, array de erros, ou objeto — converte para string legivel
+    if (Array.isArray(detail)) {
+      detail = detail.map((e) => e.msg || JSON.stringify(e)).join("; ");
+    } else if (typeof detail === "object" && detail !== null) {
+      detail = JSON.stringify(detail);
+    }
+    throw new Error(detail || `Erro ${response.status} ao enviar mensagem.`);
   }
 
   if (!response.body) {
@@ -66,7 +84,9 @@ async function sendMessageStream({ message, history, session_id, onDelta, onSess
 }
 
 async function fetchSessionMessages(sessionId) {
-  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`);
+  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`, {
+    headers: authHeaders(),
+  });
   if (!response.ok) throw new Error("Erro ao carregar mensagens da sessao");
   const data = await response.json();
   return data.messages || [];

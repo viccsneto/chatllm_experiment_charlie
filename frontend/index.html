@@ -73,7 +73,9 @@
         flex-shrink: 0;
         padding: 12px 24px;
         border-bottom: 1px solid var(--border);
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
 
       .brand {
@@ -402,6 +404,114 @@
         cursor: not-allowed;
       }
 
+      /* ---- Auth ---- */
+      .auth-overlay {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-page);
+      }
+
+      .auth-card {
+        width: 100%;
+        max-width: 380px;
+        padding: 32px 28px;
+        background: var(--bg-page);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      }
+
+      .auth-title {
+        margin: 0 0 4px;
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+
+      .auth-subtitle {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .auth-form input {
+        padding: 10px 14px;
+        border: 1px solid var(--composer-border);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 150ms ease;
+      }
+
+      .auth-form input:focus {
+        border-color: var(--accent);
+      }
+
+      .auth-form button {
+        margin-top: 6px;
+        padding: 10px;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+
+      .auth-form button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      .auth-form button:disabled {
+        background: #d9d9d9;
+        cursor: not-allowed;
+      }
+
+      .auth-toggle {
+        margin-top: 14px;
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
+        width: 100%;
+        text-align: center;
+      }
+
+      .auth-toggle:hover {
+        color: var(--text);
+      }
+
+      /* ---- Logout ---- */
+      .logout-btn {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+
+      .logout-btn:hover {
+        color: #c0392b;
+        border-color: #c0392b;
+      }
+
       @keyframes slideUp {
         from { opacity: 0; transform: translateY(6px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -431,6 +541,7 @@
     <script type="text/babel" src="/frontend/src/MessageContent.jsx"></script>
     <script type="text/babel" src="/frontend/src/Composer.jsx"></script>
     <script type="text/babel" src="/frontend/src/Sidebar.jsx"></script>
+    <script type="text/babel" src="/frontend/src/AuthForm.jsx"></script>
     <script type="text/babel" src="/frontend/src/App.jsx"></script>
   </body>
 </html>

@@ -18,6 +18,8 @@ function App() {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const messagesRef = useRef(null);
   const abortControllerRef = useRef(null);
   const currentSessionIdRef = useRef(null);
@@ -28,13 +30,40 @@ function App() {
   }, [currentSessionId]);
 
   const chatHistory = useMemo(
-    () => messages.filter((msg) => msg.role === "user" || msg.role === "assistant"),
+    () => messages.filter((msg) => (msg.role === "user" || msg.role === "assistant") && msg.content.trim()),
     [messages]
   );
 
   // Nao cria sessao inicial — so e criada no primeiro envio de mensagem
   useEffect(() => {
     setInitialLoading(false);
+  }, []);
+
+  // Verifica se ja existe token salvo
+  useEffect(() => {
+    async function checkAuth() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAuthLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        } else {
+          localStorage.removeItem("token");
+        }
+      } catch {
+        localStorage.removeItem("token");
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+    checkAuth();
   }, []);
 
   const loadSessionMessages = useCallback(async (sessionId) => {
@@ -85,7 +114,10 @@ function App() {
   const handleSelectSession = useCallback((sessionId) => {
     if (sessionId === null) {
       // Cria nova sessao via API (para poder carregar historico depois)
-      fetch(`${API_BASE}/api/sessions`, { method: "POST" })
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      fetch(`${API_BASE}/api/sessions`, { method: "POST", headers })
         .then((r) => r.json())
         .then((data) => {
           setCurrentSessionId(data.id);
@@ -130,6 +162,21 @@ function App() {
   const handleSessionTitle = useCallback(() => {
     setSidebarRefresh((n) => n + 1);
   }, []);
+
+  const handleLoginSuccess = useCallback((data) => {
+    setUser({ email: data.email, display_name: data.display_name || null });
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    setMessages([{
+      id: createMessageId(),
+      role: "assistant",
+      content: "Bem-vindo ao ChatLLM Lab. Como posso ajudar voce hoje?",
+    }]);
+    setCurrentSessionId(null);
+  };
 
   const onSubmit = async (event, inputRef) => {
     event.preventDefault();
@@ -208,12 +255,16 @@ function App() {
     }
   };
 
-  if (initialLoading) {
+  if (authLoading || initialLoading) {
     return (
       <main className="app-shell">
         <div className="app-loading">Carregando...</div>
       </main>
     );
+  }
+
+  if (!user) {
+    return <AuthForm onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
@@ -228,6 +279,7 @@ function App() {
       <main className="app-shell">
         <header className="app-header">
           <div className="brand">ChatLLM Lab</div>
+          <button className="logout-btn" onClick={handleLogout}>Sair</button>
         </header>
 
         <section className="messages" aria-live="polite" ref={messagesRef}>

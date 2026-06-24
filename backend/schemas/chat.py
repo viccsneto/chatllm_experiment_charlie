@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ChatMessageIn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=8000)
+    model_config = ConfigDict(extra="ignore")
 
 
 class ChatRequest(BaseModel):
