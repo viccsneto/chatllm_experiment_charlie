@@ -3,7 +3,15 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from backend.schemas.chat import ChatMessageIn, ChatRequest, ChatResponse
+from backend.schemas.chat import (
+    ChatMessageIn,
+    ChatRequest,
+    ChatResponse,
+    SessionCreateOut,
+    SessionListOut,
+    SessionMessagesOut,
+    SessionOut,
+)
 
 
 class TestChatMessageIn:
@@ -36,10 +44,15 @@ class TestChatRequest:
         assert req.message == "Hello"
         assert req.model is None
         assert req.history == []
+        assert req.session_id is None
 
     def test_valid_request_with_model(self):
         req = ChatRequest(message="Hi", model="openai/gpt-4o")
         assert req.model == "openai/gpt-4o"
+
+    def test_valid_request_with_session_id(self):
+        req = ChatRequest(message="Hi", session_id=42)
+        assert req.session_id == 42
 
     def test_valid_request_with_history(self):
         history = [
@@ -68,3 +81,44 @@ class TestChatResponse:
         resp = ChatResponse(reply="Resposta do modelo.", model="google/gemma-4-31b-it")
         assert resp.reply == "Resposta do modelo."
         assert resp.model == "google/gemma-4-31b-it"
+
+
+class TestSessionOut:
+    def test_valid_session_out(self):
+        from datetime import datetime
+        session = SessionOut(id=1, title="Teste", created_at=datetime(2026, 1, 1), updated_at=datetime(2026, 1, 1))
+        assert session.id == 1
+        assert session.title == "Teste"
+
+    def test_session_out_nullable_title(self):
+        from datetime import datetime
+        session = SessionOut(id=2, title=None, created_at=datetime(2026, 1, 1), updated_at=datetime(2026, 1, 1))
+        assert session.title is None
+
+
+class TestSessionCreateOut:
+    def test_valid_session_create_out(self):
+        from datetime import datetime
+        session = SessionCreateOut(id=1, title=None, created_at=datetime(2026, 1, 1))
+        assert session.id == 1
+
+
+class TestSessionListOut:
+    def test_valid_session_list_out(self):
+        from datetime import datetime
+        s = SessionOut(id=1, title="A", created_at=datetime(2026, 1, 1), updated_at=datetime(2026, 1, 1))
+        lst = SessionListOut(sessions=[s])
+        assert len(lst.sessions) == 1
+
+
+class TestSessionMessagesOut:
+    def test_valid_session_messages_out(self):
+        msgs = SessionMessagesOut(
+            session_id=1,
+            messages=[
+                ChatMessageIn(role="user", content="Oi"),
+                ChatMessageIn(role="assistant", content="Ola"),
+            ],
+        )
+        assert msgs.session_id == 1
+        assert len(msgs.messages) == 2

@@ -1,10 +1,10 @@
 const API_BASE = window.location.origin;
 
-async function sendMessageStream({ message, history, onDelta, signal }) {
+async function sendMessageStream({ message, history, session_id, onDelta, onSessionId, onSessionTitle, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, session_id }),
     signal,
   });
 
@@ -53,6 +53,21 @@ async function sendMessageStream({ message, history, onDelta, signal }) {
       if (payload.delta) {
         onDelta(payload.delta);
       }
+
+      if (payload.session_id && onSessionId) {
+        onSessionId(payload.session_id);
+      }
+
+      if (payload.session_title && onSessionTitle) {
+        onSessionTitle(payload.session_id, payload.session_title);
+      }
     }
   }
+}
+
+async function fetchSessionMessages(sessionId) {
+  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`);
+  if (!response.ok) throw new Error("Erro ao carregar mensagens da sessao");
+  const data = await response.json();
+  return data.messages || [];
 }
