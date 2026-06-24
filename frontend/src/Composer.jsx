@@ -1,6 +1,6 @@
 const { useEffect, useRef } = React;
 
-function Composer({ text, busy, error, onChangeText, onSubmit, onStop }) {
+function Composer({ text, busy, error, onChangeText, onSubmit, onStop, onFocusInput }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -26,6 +26,7 @@ function Composer({ text, busy, error, onChangeText, onSubmit, onStop }) {
           ref={inputRef}
           value={text}
           onChange={(event) => onChangeText(event.target.value)}
+          onFocus={onFocusInput}
           placeholder="Mensagem para ChatLLM Lab"
           maxLength={8000}
           disabled={busy}
