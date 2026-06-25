@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from backend.models import ChatMessage
+from datetime import datetime, timezone
+
+from backend.models import ChatMessage, Message, Session
 
 
 class TestChatMessage:
@@ -98,6 +100,95 @@ class TestChatMessage:
         after = datetime.now(timezone.utc).replace(tzinfo=None)
 
         assert before <= msg.created_at <= after
+
+
+class TestSession:
+    def test_create_session_defaults(self, db_session):
+        """Deve criar uma sessao com valores padrao."""
+        s = Session()
+        db_session.add(s)
+        db_session.commit()
+        db_session.refresh(s)
+
+        assert s.id is not None
+        assert s.title == "Nova conversa"
+        assert isinstance(s.created_at, datetime)
+        assert isinstance(s.updated_at, datetime)
+
+    def test_session_custom_title(self, db_session):
+        """Deve criar uma sessao com titulo customizado."""
+        s = Session(title="Minha sessao de teste")
+        db_session.add(s)
+        db_session.commit()
+        db_session.refresh(s)
+
+        assert s.title == "Minha sessao de teste"
+
+    def test_session_ordered_by_updated_at(self, db_session):
+        """Sessoes mais recentes primeiro."""
+        from datetime import timedelta
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        s1 = Session(title="Antiga", updated_at=now - timedelta(hours=2))
+        s2 = Session(title="Recente", updated_at=now)
+        db_session.add_all([s1, s2])
+        db_session.commit()
+
+        results = db_session.query(Session).order_by(Session.updated_at.desc()).all()
+        assert results[0].title == "Recente"
+        assert results[1].title == "Antiga"
+
+
+class TestMessage:
+    def test_create_message_with_session(self, db_session):
+        """Deve criar uma mensagem vinculada a uma sessao."""
+        s = Session(title="Sessao teste")
+        db_session.add(s)
+        db_session.flush()
+
+        msg = Message(session_id=s.id, role="user", content="Ola")
+        db_session.add(msg)
+        db_session.commit()
+        db_session.refresh(msg)
+
+        assert msg.id is not None
+        assert msg.session_id == s.id
+        assert msg.role == "user"
+        assert msg.content == "Ola"
+        assert msg.model == "google/gemma-4-31b-it"
+        assert isinstance(msg.created_at, datetime)
+
+    def test_message_belongs_to_session(self, db_session):
+        """A mensagem deve pertencer a sessao correta (relationship)."""
+        s = Session(title="Sessao 1")
+        db_session.add(s)
+        db_session.flush()
+
+        msg = Message(session_id=s.id, role="assistant", content="Resposta")
+        db_session.add(msg)
+        db_session.commit()
+
+        assert msg.session.title == "Sessao 1"
+        assert s.messages[0].content == "Resposta"
+
+    def test_cascade_delete(self, db_session):
+        """Deletar sessao deve deletar as mensagens associadas."""
+        s = Session(title="Sessao delete")
+        db_session.add(s)
+        db_session.flush()
+
+        msg1 = Message(session_id=s.id, role="user", content="msg1")
+        msg2 = Message(session_id=s.id, role="assistant", content="msg2")
+        db_session.add_all([msg1, msg2])
+        db_session.commit()
+
+        db_session.delete(s)
+        db_session.commit()
+
+        remaining = db_session.query(Message).filter(
+            Message.session_id == s.id
+        ).all()
+        assert len(remaining) == 0
 
     def test_content_persists_long_text(self, db_session):
         """Deve persistir conteudos longos corretamente."""

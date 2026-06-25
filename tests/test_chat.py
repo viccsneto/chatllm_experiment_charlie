@@ -57,6 +57,67 @@ class TestChatStreamEndpoint:
         assert response.status_code == 422
 
 
+class TestSessionEndpoints:
+    def test_list_sessions_empty(self, client: TestClient):
+        """Listagem de sessoes deve retornar lista vazia inicialmente."""
+        response = client.get("/api/sessions")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_list_sessions_after_creation(self, client: TestClient, db_session):
+        """Deve listar sessoes apos criar uma."""
+        from backend.models import Session
+
+        s = Session(title="Sessao teste")
+        db_session.add(s)
+        db_session.commit()
+
+        response = client.get("/api/sessions")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["title"] == "Sessao teste"
+
+    def test_get_session_messages_not_found(self, client: TestClient):
+        """Sessao inexistente deve retornar 404."""
+        response = client.get("/api/sessions/999/messages")
+        assert response.status_code == 404
+
+    def test_get_session_messages_empty(self, client: TestClient, db_session):
+        """Sessao existente sem mensagens deve retornar lista vazia."""
+        from backend.models import Session
+
+        s = Session(title="Sessao vazia")
+        db_session.add(s)
+        db_session.commit()
+
+        response = client.get(f"/api/sessions/{s.id}/messages")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_get_session_messages_with_content(self, client: TestClient, db_session):
+        """Deve retornar mensagens de uma sessao ordenadas por created_at."""
+        from backend.models import Message, Session
+
+        s = Session(title="Sessao com msgs")
+        db_session.add(s)
+        db_session.flush()
+
+        m1 = Message(session_id=s.id, role="user", content="Pergunta")
+        m2 = Message(session_id=s.id, role="assistant", content="Resposta")
+        db_session.add_all([m1, m2])
+        db_session.commit()
+
+        response = client.get(f"/api/sessions/{s.id}/messages")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["role"] == "user"
+        assert data[0]["content"] == "Pergunta"
+        assert data[1]["role"] == "assistant"
+        assert data[1]["content"] == "Resposta"
+
+
 class TestCORSMiddleware:
     def test_cors_headers_present(self, client: TestClient):
         """Verifica que os headers CORS estao presentes."""
