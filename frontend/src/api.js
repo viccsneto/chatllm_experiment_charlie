@@ -1,9 +1,14 @@
 const API_BASE = window.location.origin;
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("auth_token");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
 async function sendMessageStream({ message, history, sessionId, onDelta, onDone, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ message, history, session_id: sessionId }),
     signal,
   });
@@ -62,7 +67,9 @@ async function sendMessageStream({ message, history, sessionId, onDelta, onDone,
 }
 
 async function fetchSessions() {
-  const response = await fetch(`${API_BASE}/api/sessions`);
+  const response = await fetch(`${API_BASE}/api/sessions`, {
+    headers: getAuthHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Erro ao carregar sessoes.");
   }
@@ -70,9 +77,48 @@ async function fetchSessions() {
 }
 
 async function fetchSessionMessages(sessionId) {
-  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`);
+  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`, {
+    headers: getAuthHeaders(),
+  });
   if (!response.ok) {
     throw new Error("Erro ao carregar mensagens da sessao.");
   }
   return response.json();
+}
+
+async function apiSignup(name, email, password) {
+  const response = await fetch(`${API_BASE}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro ao cadastrar.");
+  }
+  return data;
+}
+
+async function apiLogin(email, password) {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro ao fazer login.");
+  }
+  return data;
+}
+
+async function apiLogout() {
+  const response = await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || "Erro ao fazer logout.");
+  }
 }

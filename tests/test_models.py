@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from datetime import datetime, timezone
 
-from backend.models import ChatMessage, Message, Session
+from backend.models import ChatMessage, Message, Session, User
 
 
 class TestChatMessage:
@@ -102,22 +102,33 @@ class TestChatMessage:
         assert before <= msg.created_at <= after
 
 
+def _make_user(db_session) -> User:
+    """Cria um usuario de testes e retorna."""
+    u = User(name="Teste", email="teste@email.com", hashed_password="hash_falso")
+    db_session.add(u)
+    db_session.flush()
+    return u
+
+
 class TestSession:
     def test_create_session_defaults(self, db_session):
         """Deve criar uma sessao com valores padrao."""
-        s = Session()
+        u = _make_user(db_session)
+        s = Session(user_id=u.id)
         db_session.add(s)
         db_session.commit()
         db_session.refresh(s)
 
         assert s.id is not None
         assert s.title == "Nova conversa"
+        assert s.user_id == u.id
         assert isinstance(s.created_at, datetime)
         assert isinstance(s.updated_at, datetime)
 
     def test_session_custom_title(self, db_session):
         """Deve criar uma sessao com titulo customizado."""
-        s = Session(title="Minha sessao de teste")
+        u = _make_user(db_session)
+        s = Session(user_id=u.id, title="Minha sessao de teste")
         db_session.add(s)
         db_session.commit()
         db_session.refresh(s)
@@ -128,9 +139,10 @@ class TestSession:
         """Sessoes mais recentes primeiro."""
         from datetime import timedelta
 
+        u = _make_user(db_session)
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        s1 = Session(title="Antiga", updated_at=now - timedelta(hours=2))
-        s2 = Session(title="Recente", updated_at=now)
+        s1 = Session(user_id=u.id, title="Antiga", updated_at=now - timedelta(hours=2))
+        s2 = Session(user_id=u.id, title="Recente", updated_at=now)
         db_session.add_all([s1, s2])
         db_session.commit()
 
@@ -138,11 +150,22 @@ class TestSession:
         assert results[0].title == "Recente"
         assert results[1].title == "Antiga"
 
+    def test_session_belongs_to_user(self, db_session):
+        """Sessao deve pertencer ao usuario correto."""
+        u = _make_user(db_session)
+        s = Session(user_id=u.id, title="Minha sessao")
+        db_session.add(s)
+        db_session.commit()
+
+        assert s.user.id == u.id
+        assert u.sessions[0].title == "Minha sessao"
+
 
 class TestMessage:
     def test_create_message_with_session(self, db_session):
         """Deve criar uma mensagem vinculada a uma sessao."""
-        s = Session(title="Sessao teste")
+        u = _make_user(db_session)
+        s = Session(user_id=u.id, title="Sessao teste")
         db_session.add(s)
         db_session.flush()
 
@@ -160,7 +183,8 @@ class TestMessage:
 
     def test_message_belongs_to_session(self, db_session):
         """A mensagem deve pertencer a sessao correta (relationship)."""
-        s = Session(title="Sessao 1")
+        u = _make_user(db_session)
+        s = Session(user_id=u.id, title="Sessao 1")
         db_session.add(s)
         db_session.flush()
 
@@ -173,7 +197,8 @@ class TestMessage:
 
     def test_cascade_delete(self, db_session):
         """Deletar sessao deve deletar as mensagens associadas."""
-        s = Session(title="Sessao delete")
+        u = _make_user(db_session)
+        s = Session(user_id=u.id, title="Sessao delete")
         db_session.add(s)
         db_session.flush()
 

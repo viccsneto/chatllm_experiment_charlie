@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from backend.config import OPENROUTER_MODEL_DEFAULT
 from backend.database import get_db
-from backend.models import ChatMessage, Message, Session
+from backend.models import ChatMessage, Message, Session, User
+from backend.routers.auth import get_current_user
 from backend.schemas.chat import (
     ChatMessageIn,
     ChatRequest,
@@ -29,17 +30,24 @@ def health_check() -> dict[str, str]:
 
 
 def _get_or_create_session(
-    db: Session, session_id: int | None, user_message: str
+    db: Session,
+    session_id: int | None,
+    user_message: str,
+    user_id: int,
 ) -> Session:
     if session_id is not None:
-        session = db.query(Session).filter(Session.id == session_id).first()
+        session = (
+            db.query(Session)
+            .filter(Session.id == session_id, Session.user_id == user_id)
+            .first()
+        )
         if not session:
             raise HTTPException(status_code=404, detail="Sessao nao encontrada")
         session.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return session
 
     title = user_message[:60] + ("..." if len(user_message) > 60 else "")
-    session = Session(title=title)
+    session = Session(title=title, user_id=user_id)
     db.add(session)
     db.flush()
     return session
@@ -67,8 +75,12 @@ def _persist_messages(
 
 
 @router.post("/api/chat", response_model=ChatResponse)
-async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
-    session = _get_or_create_session(db, payload.session_id, payload.message)
+async def chat(
+    payload: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatResponse:
+    session = _get_or_create_session(db, payload.session_id, payload.message, current_user.id)
 
     try:
         reply, model_name = await generate_reply(
@@ -106,7 +118,11 @@ async def chat(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
 
 
 @router.post("/api/chat/stream")
-async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> StreamingResponse:
+async def chat_stream(
+    payload: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
     resolved_model = payload.model or OPENROUTER_MODEL_DEFAULT
 
     async def event_generator():
@@ -128,7 +144,7 @@ async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> St
 
         if full_reply.strip():
             session = _get_or_create_session(
-                db, payload.session_id, payload.message
+                db, payload.session_id, payload.message, current_user.id
             )
 
             db.add(
@@ -164,9 +180,13 @@ async def chat_stream(payload: ChatRequest, db: Session = Depends(get_db)) -> St
 
 
 @router.get("/api/sessions", response_model=list[SessionOut])
-def list_sessions(db: Session = Depends(get_db)) -> list[Session]:
+def list_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[Session]:
     return (
         db.query(Session)
+        .filter(Session.user_id == current_user.id)
         .order_by(Session.updated_at.desc())
         .all()
     )
@@ -174,9 +194,15 @@ def list_sessions(db: Session = Depends(get_db)) -> list[Session]:
 
 @router.get("/api/sessions/{session_id}/messages", response_model=list[MessageOut])
 def list_session_messages(
-    session_id: int, db: Session = Depends(get_db)
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> list[Message]:
-    session = db.query(Session).filter(Session.id == session_id).first()
+    session = (
+        db.query(Session)
+        .filter(Session.id == session_id, Session.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Sessao nao encontrada")
 

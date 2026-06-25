@@ -11,6 +11,8 @@ const WELCOME_MESSAGE = {
 };
 
 function App() {
+  const [authenticated, setAuthenticated] = useState(!!localStorage.getItem("auth_token"));
+  const [userName, setUserName] = useState(localStorage.getItem("user_name") || "");
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,15 +29,19 @@ function App() {
     [messages]
   );
 
-  // Load sessions on mount
+  // Load sessions on mount (only if authenticated)
   useEffect(() => {
+    if (!authenticated) {
+      setLoadingSessions(false);
+      return;
+    }
     fetchSessions()
       .then((data) => {
         setSessions(data);
         setLoadingSessions(false);
       })
       .catch(() => setLoadingSessions(false));
-  }, []);
+  }, [authenticated]);
 
   useEffect(() => {
     const el = messagesRef.current;
@@ -52,6 +58,30 @@ function App() {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     setBusy(false);
+  }, []);
+
+  const handleAuthSuccess = useCallback((result) => {
+    setAuthenticated(true);
+    setUserName(result.name);
+    setMessages([WELCOME_MESSAGE]);
+    setCurrentSessionId(null);
+    setLoadingSessions(true);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // silent
+    }
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_name");
+    localStorage.removeItem("user_email");
+    setAuthenticated(false);
+    setUserName("");
+    setMessages([WELCOME_MESSAGE]);
+    setCurrentSessionId(null);
+    setSessions([]);
   }, []);
 
   const loadSessionMessages = useCallback(async (sessionId) => {
@@ -174,6 +204,10 @@ function App() {
     }
   };
 
+  if (!authenticated) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className="app-layout">
       <aside className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
@@ -223,6 +257,10 @@ function App() {
             </svg>
           </button>
           <div className="brand">ChatLLM Lab</div>
+          <div className="user-info">
+            <span className="user-name">{userName}</span>
+            <button className="logout-btn" onClick={handleLogout}>Sair</button>
+          </div>
         </header>
 
         <section className="messages" aria-live="polite" ref={messagesRef}>
