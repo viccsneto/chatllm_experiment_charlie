@@ -8,12 +8,32 @@ from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 
 from backend.database import Base, engine
 from backend.routers.chat import router as chat_router
+from backend.routers.auth import router as auth_router
 
 
 Base.metadata.create_all(bind=engine)
+
+# Migration: ensure columns exist
+inspector = inspect(engine)
+
+msg_columns = {c["name"] for c in inspector.get_columns("chat_messages")}
+if "session_id" not in msg_columns:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_messages ADD COLUMN session_id INTEGER REFERENCES chat_sessions(id)"))
+if "session_key" not in msg_columns:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_messages ADD COLUMN session_key VARCHAR(120) DEFAULT 'default'"))
+
+# Migration: add user_id to chat_sessions if missing
+if "chat_sessions" in inspector.get_table_names():
+    sess_columns = {c["name"] for c in inspector.get_columns("chat_sessions")}
+    if "user_id" not in sess_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN user_id INTEGER REFERENCES users(id)"))
 
 app = FastAPI(title="ChatLLM Experiment API")
 
@@ -38,6 +58,7 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 app.add_middleware(NoCacheMiddleware)
 
 app.include_router(chat_router)
+app.include_router(auth_router)
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
