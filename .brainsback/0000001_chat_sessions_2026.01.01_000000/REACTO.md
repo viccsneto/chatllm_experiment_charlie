@@ -5,25 +5,34 @@
 **Hard rule**: AI agents must not edit this file and must not draft paste-ready content for it.
 
 ## R — Repeat (The Problem)
-_State the problem in your own words. Confirm that you share the same mental model of the goal._
+Uma barra lateral que contém todo o histórico de sessões de chat, com títulos criados automaticamente.
 
 ## E — Examples
-_Provide concrete inputs and expected outputs that demonstrate the correctness. Base them on observable behavior._
 
-- **Happy Path Input**: ...
-  **Output**: ...
+- **Happy Path Input**: Uma mensagem é enviada em uma nova conversa.
+  **Output**: A nova sessão é salva no histórico, com um título automático relacionado ao conteúdo da conversa.
 
-- **Edge Case Input**: ...
-  **Output**: ...
+- **Happy Path Input**: O botão de remoção de uma sessão é pressionado.
+  **Output**: A sessão é removida do histórico na barra lateral, não podendo mais ser acessada.
+
+- **Edge Case Input**: Uma nova sessão é criada com nome inserido manualmente.
+  **Output**: A sessão é salva no histórico com o nome inserido manualmente, sem ser alterado pela IA.
 
 ## A — Approach
-_Describe your high-level strategy conceptually. How did you design the solution?_
+A estratégia adotada foi adicionar uma nova entidade ChatSession, integrada ao banco de dados e aos endpoints da aplicação. Em seguida, foi criado o componente de barra lateral com o histórico de sessões.
 
 ## C — Code
-_Identify the most critical code changes, format as actual files, functions, or methods. Justify the intent of your design choices rather than just acknowledging the syntax changes._
+models.py: Adicionada a classe ChatSession, que representa uma sessão de chat e tem relacionamento one-to-many com ChatMessage.
+routers/chat.py: Criados novos endpoints para realizar o CRUD das sessões de chat.
+schemas/chat.py: Adicionados schemas novos para armazenar as sessões de chat.
+api.js: Novas funções criadas para lidar com o CRUD de sessões.
+App.jsx: Componente visual da barra lateral adicionado, com botão de "Nova conversa", botões de deleção e edição de título.
+index.html: Adicionados estilo CSS à barra lateral, posicionamento do componente e scroll vertical.
 
 ## T — Tests
-_Explain how the solution was validated, pointing to the actual test files, functions, or methods. Document any manual or automated tests._
+Primeiramente, os 41 testes existentes foram rodados para garantir o funcionamento do restante da aplicação. Em seguida, a nova funcionalidade foi validada com testes manuais no browser.
 
 ## O — Optimize
-_Address Big(O) complexity, note that sometimes it doesn't apply, trade-offs, constraints, and opportunities for future improvement._
+Complexidade O(1) para a maioria das operações, e O(M) para as que precisam percorrer as mensagens.
+Todas as mensagens são carregadas de uma vez, sem paginação.
+A geração de título faz chamadas extras ao mesmo modelo de chat, consumindo recursos a mais.

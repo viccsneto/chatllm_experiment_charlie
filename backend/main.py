@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import Base, engine
+from backend.routers.auth import router as auth_router
 from backend.routers.chat import router as chat_router
 
 
@@ -20,10 +21,12 @@ app = FastAPI(title="ChatLLM Experiment API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 class NoCacheMiddleware(BaseHTTPMiddleware):
