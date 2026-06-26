@@ -10,7 +10,9 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import Base, engine
+from backend.routers.auth import router as auth_router
 from backend.routers.chat import router as chat_router
+from backend.routers.sessions import router as sessions_router
 
 
 Base.metadata.create_all(bind=engine)
@@ -37,7 +39,9 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(NoCacheMiddleware)
 
+app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(sessions_router)
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate",

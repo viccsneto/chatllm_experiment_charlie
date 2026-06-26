@@ -105,6 +105,9 @@ async def stream_reply(*, user_message: str, history: list[dict], model: str | N
                 except json.JSONDecodeError:
                     continue
 
-                delta = parsed.get("choices", [{}])[0].get("delta", {}).get("content")
+                choices = parsed.get("choices") or []
+                if not choices:
+                    continue
+                delta = choices[0].get("delta", {}).get("content")
                 if isinstance(delta, str) and delta:
                     yield delta
