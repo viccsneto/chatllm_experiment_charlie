@@ -3,7 +3,17 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from backend.schemas.chat import ChatMessageIn, ChatRequest, ChatResponse
+from datetime import datetime
+
+from pydantic import ValidationError
+
+from backend.schemas.chat import (
+    ChatMessageIn,
+    ChatRequest,
+    ChatResponse,
+    MessageOut,
+    SessionOut,
+)
 
 
 class TestChatMessageIn:
@@ -41,6 +51,10 @@ class TestChatRequest:
         req = ChatRequest(message="Hi", model="openai/gpt-4o")
         assert req.model == "openai/gpt-4o"
 
+    def test_valid_request_with_session_id(self):
+        req = ChatRequest(message="Hi", session_id=42)
+        assert req.session_id == 42
+
     def test_valid_request_with_history(self):
         history = [
             ChatMessageIn(role="user", content="pergunta"),
@@ -65,6 +79,58 @@ class TestChatRequest:
 
 class TestChatResponse:
     def test_valid_response(self):
-        resp = ChatResponse(reply="Resposta do modelo.", model="google/gemma-4-31b-it")
+        resp = ChatResponse(
+            reply="Resposta do modelo.",
+            model="google/gemma-4-31b-it",
+            session_id=1,
+        )
         assert resp.reply == "Resposta do modelo."
         assert resp.model == "google/gemma-4-31b-it"
+        assert resp.session_id == 1
+
+
+class TestSessionOut:
+    def test_valid_session_out(self):
+        now = datetime.now()
+        s = SessionOut(id=1, title="Teste", created_at=now, updated_at=now)
+        assert s.id == 1
+        assert s.title == "Teste"
+
+    def test_session_out_from_attributes(self):
+        """Simula criacao a partir de atributos ORM."""
+        now = datetime.now()
+        s = SessionOut.model_validate(
+            {"id": 5, "title": "ORM Session", "created_at": now, "updated_at": now}
+        )
+        assert s.id == 5
+        assert s.title == "ORM Session"
+
+
+class TestMessageOut:
+    def test_valid_message_out(self):
+        now = datetime.now()
+        m = MessageOut(
+            id=1,
+            session_id=1,
+            role="user",
+            content="Oi",
+            model="google/gemma-4-31b-it",
+            created_at=now,
+        )
+        assert m.role == "user"
+        assert m.content == "Oi"
+
+    def test_message_out_from_attributes(self):
+        now = datetime.now()
+        m = MessageOut.model_validate(
+            {
+                "id": 2,
+                "session_id": 1,
+                "role": "assistant",
+                "content": "Resposta",
+                "model": "google/gemma-4-31b-it",
+                "created_at": now,
+            }
+        )
+        assert m.role == "assistant"
+        assert m.content == "Resposta"
