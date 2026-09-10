@@ -33,6 +33,7 @@ Use this skill whenever you see `.brainsback/<task-folder>/TODO.md`, `.brainsbac
 
 - `.brainsback/<task-folder>/SOCRATIC_REVIEW.md` (AI-generated, human-read-only)
     - **AI-owned**: humans must not create, edit, or pre-fill this file.
+    - Part of this task's own cycle: it is triggered **right after** `REACTO.md` is filled, not after any other task, and not as an end-of-experiment step. It does not apply to free-implementation tasks at all.
     - Serialized by the agent once satisfied the developer proved genuine understanding; includes a mastery verdict.
     - Do not generate or pre-fill this outside the dedicated Socratic review session.
 
@@ -69,6 +70,10 @@ Use this skill whenever you see `.brainsback/<task-folder>/TODO.md`, `.brainsbac
 
 5. **Prepare for REACTO-SE**
   - Ask questions that help the developer author `.brainsback/<task-folder>/REACTO.md` (without drafting content).
+
+6. **Trigger the Socratic review — this task's final step**
+   - Once `.brainsback/<task-folder>/REACTO.md` is filled, this task is not yet complete: point the developer to the Socratic review (see the `brainsback-reviewer` skill).
+   - This review belongs to this task only. Do not postpone it until a later task is finished, and do not treat it as a final review to be done at the end of the experiment.
 
 ## Workflow when reviewing code
 

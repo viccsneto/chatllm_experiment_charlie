@@ -37,9 +37,10 @@ Each iteration lives in `.brainsback/#######_task_description_YYYY.MM.dd_hhmmss/
   - You may **read** `REACTO.md` to understand intent and context.
   - Do **not** auto-fill or heavily rewrite answers for the user; ask questions instead.
 
-- `.brainsback/SOCRATIC_REVIEW.md` — **Socratic Review Record (AI-generated)**
+- `.brainsback/<task-folder>/SOCRATIC_REVIEW.md` — **Socratic Review Record (AI-generated)**
   - **AI-owned**: humans must not create, edit, or pre-fill this file.
-  - Triggered only **after** the tasks in `README.md` are completed, as per the rules defined in the Socratic Reviewer skill.
+  - Applies **only** to the pipeline-controlled task. Triggered **immediately after** that task's `REACTO.md` is filled — as per the rules defined in the Socratic Reviewer skill. It is not deferred until both tasks are done, and it is not a final step before the Pull Request.
+  - Not applicable to free-implementation tasks: there is no Socratic review for them, at any point.
   - Serialized by the agent once it is satisfied the developer demonstrated genuine understanding; includes a mastery verdict.
   - Do **not** generate or fill this file outside a dedicated Socratic review session.
 
@@ -62,7 +63,7 @@ The following rules exist to prevent Cognitive Bypass. Treat them as **hard cons
   - During PR review, a diff may legitimately include human changes to those files. Do not blanket-request a revert; instead ask the developer to confirm they authored the changes and to explain what changed and why.
 
 4. **Complete hand-off during Socratic review**
-  - When the Socratic Reviewer skill is active, you must **completely step back** and **pass full control** to that skill.
+  - This review happens once, right after `REACTO.md` is filled for the pipeline-controlled task — mid-experiment, not at the end. When the Socratic Reviewer skill is active, you must **completely step back** and **pass full control** to that skill.
   - Do not respond, act, participate, or generate any content while the Socratic reviewer skill is conducting the session.
   - If the user addresses you (the general agent) during an active Socratic review, refuse to answer and redirect them to the reviewer.
   - Never suggest, draft, or hint at what the user should say or how they should answer the Socratic reviewer's questions. Doing so would defeat the purpose of testing their independent understanding.
@@ -173,10 +174,12 @@ The following rules exist to prevent Cognitive Bypass. Treat them as **hard cons
    - If the user says "explain" or "describe", then provide explanations.
    - Otherwise: output the code changes directly and nothing more.
 
-8. **REACTO.md must be filled before a pipeline-controlled task is considered complete**
-   - For pipeline-controlled tasks, a task is not considered complete until its `.brainsback/<task-folder>/REACTO.md` has been filled by the developer.
+8. **REACTO.md and the Socratic review must both be done before a pipeline-controlled task is considered complete**
+   - For pipeline-controlled tasks, a task is not considered complete until its `.brainsback/<task-folder>/REACTO.md` has been filled by the developer AND `.brainsback/<task-folder>/SOCRATIC_REVIEW.md` contains a final mastery verdict.
    - Do not recommend or trigger Socratic review if the current pipeline-controlled task's `REACTO.md` is missing, empty, or merely a template.
+   - The Socratic review runs **right after** `REACTO.md` is filled, as part of this same task. Never defer it until the other task is finished, and never present it as an "end of experiment" review.
    - If the code for a pipeline-controlled task is implemented but `REACTO.md` is not yet filled, report the status as "Implementation done, REACTO.md pending" rather than "Task complete."
+   - If `REACTO.md` is filled but `.brainsback/<task-folder>/SOCRATIC_REVIEW.md` has no final verdict yet, report the status as "REACTO.md done, Socratic review pending" rather than "Task complete."
 
 By following these rules, you help the team keep the **human** as the architect while using you as an accelerator, not an autopilot.
 
@@ -186,27 +189,21 @@ By following these rules, you help the team keep the **human** as the architect 
 
 Whenever the user asks what they should do next — or any similar question about the current state of the experiment — follow this procedure:
 
-1. **Read `README.md`** to understand the experiment's task structure (Task 1, Task 2, Socratic review). Check which tasks are controlled by the pipeline and which are free.
+1. **Read `README.md`** to understand the experiment's task structure (Task 1, Task 2). Determine which one is marked **Controlada pelo Pipeline** — the Socratic review belongs to that task only.
 2. **Check the current project state** by inspecting the codebase and artifacts.
-3. **Determine the next pending step** and respond with one of the following templates:
+3. **Walk the tasks in numeric order (Task 1, then Task 2).** For the first task that is not fully resolved, respond with the matching template below. A pipeline-controlled task is only "resolved" once its code, `REACTO.md`, **and** Socratic review are all done — do not move on to the next task, and do not mention the Socratic review in connection with the other task, before that happens.
 
-   ### Task 1 pending
-   > **Task 1 pending:** Check `README.md` for details on Task 1 requirements.
+   ### Task N pending
+   > **Task N pending:** Check `README.md` for details on Task N requirements.
    > Determine from `README.md` whether this task is pipeline-controlled or free.
    > - If pipeline-controlled: guide the user to fill `.brainsback/<task-folder>/TODO.md` first.
    > - If free: proceed with implementation as requested.
 
-   ### Task 2 pending
-   > **Task 2 pending:** Check `README.md` for details on Task 2 requirements.
-   > Determine from `README.md` whether this task is pipeline-controlled or free.
-   > - If pipeline-controlled: guide the user to fill `.brainsback/<task-folder>/TODO.md` first.
-   > - If free: the agent can implement directly without pipeline artifact requirements.
+   ### REACTO.md pending (pipeline-controlled task only)
+   > **REACTO.md pending:** Task N's code is implemented, but `.brainsback/<task-folder>/REACTO.md` is missing or empty. Please fill it in with your REACTO-SE explanation of the implementation before requesting a Socratic review.
 
-   ### REACTO.md pending
-   > **REACTO.md pending:** The pipeline-controlled task's `.brainsback/<task-folder>/REACTO.md` is missing or empty. Please fill it in with your REACTO-SE explanation of the implementation before requesting a Socratic review.
-
-   ### Socratic review pending
-   > **Socratic review pending:** All tasks are implemented and each pipeline-controlled task has its `.brainsback/<task-folder>/REACTO.md` filled. The file `.brainsback/SOCRATIC_REVIEW.md` is missing or does not contain a final conclusion. You can request a Socratic review by saying: "I want to start the Socratic review."
+   ### Socratic review pending (pipeline-controlled task only)
+   > **Socratic review pending:** Task N's `.brainsback/<task-folder>/REACTO.md` is filled, but `.brainsback/<task-folder>/SOCRATIC_REVIEW.md` is missing or does not contain a final verdict. This review is part of Task N itself — request it now by saying: "I want to start the Socratic review." Do not wait until the other task is finished.
 
    ### All tasks complete
-   > **All tasks complete!** You can commit your changes and open a Pull Request to the original repository.
+   > **All tasks complete!** Both tasks are implemented, and the pipeline-controlled task's `REACTO.md` and Socratic review are done. You can commit your changes and open a Pull Request to the original repository.
